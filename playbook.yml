@@ -1,0 +1,51 @@
+- hosts: terraform-ansible
+  become: yes
+  tasks:
+    - name: Update server
+      apt:
+        update_cache: yes
+
+    - name: Upgrade server
+      apt:
+        upgrade: yes
+
+    - name: Install curl
+      apt:
+        name: curl
+        state: present
+
+    - name: Download Docker install script
+      get_url:
+        url: https://get.docker.com
+        dest: /tmp/get-docker.sh
+        mode: '0755'
+
+    - name: Install Docker
+      shell: /tmp/get-docker.sh
+      args:
+        creates: /usr/bin/docker
+
+    - name: Ensure Docker is started
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Execute container NGINX
+      docker_container:
+        name: some-nginx
+        image: nginx:latest
+        state: started
+        published_ports:
+          - "8080:80"
+
+    - name: Execute container HTTPD
+      docker_container:
+        name: my-running-app
+        image: httpd:latest
+        state: started
+        published_ports:
+          - "8081:80"
+
+    - name: Change the content of NGINX index.html
+      shell: docker exec some-nginx sh -c 'echo "<h1>Seja bem vindo ao NGINX</h1>" > /usr/share/nginx/html/index.html'
